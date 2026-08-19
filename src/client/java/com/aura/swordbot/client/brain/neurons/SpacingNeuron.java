@@ -4,6 +4,7 @@ import com.aura.swordbot.client.brain.act.base.move.MoveDirection;
 import com.aura.swordbot.client.brain.act.base.move.MoveKeyDown;
 import com.aura.swordbot.client.brain.act.base.move.MoveKeyUp;
 import com.aura.swordbot.client.brain.act.base.sprint.StartSprint;
+import com.aura.swordbot.client.brain.act.complex.DoubleJump;
 import com.aura.swordbot.client.brain.act.complex.Strafe;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.LivingEntity;
@@ -15,6 +16,8 @@ import net.minecraft.world.entity.LivingEntity;
  * harder to hit us, and our hits sting more.
  */
 public final class SpacingNeuron {
+
+	private static int approachTicks = 0;
 
 	private SpacingNeuron() {}
 
@@ -46,6 +49,11 @@ public final class SpacingNeuron {
 	}
 
 	public static void approach(Minecraft client, LivingEntity target) {
+		// occasionally build momentum with a rebound jump on the way in (§8.4)
+		if (++approachTicks % FightConfig.DOUBLE_JUMP_INTERVAL == 0) {
+			DoubleJump.execute(client);
+			return;
+		}
 		Strafe.stopAll(client);
 		MoveKeyUp.execute(client, MoveDirection.BACK);
 		MoveKeyDown.execute(client, MoveDirection.FORWARD);

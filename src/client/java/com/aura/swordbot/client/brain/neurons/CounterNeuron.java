@@ -30,9 +30,29 @@ public final class CounterNeuron {
 			return false;
 		}
 
+		// 1. reverse deflection — they deflected our recent hit; sprint-hit them
+		//    back before they can hit-select us (§6.1)
+		if (Brain.justTookDamage
+				&& Brain.tickCount - Brain.lastHitTick <= FightConfig.ESCAPE_HIT_WINDOW
+				&& dist <= FightConfig.COMBO_RANGE + 0.5) {
+			ActionLock.lock(3);
+			SprintHit.executeAimed(client);
+			return true;
+		}
+
 		// 1. deflection — they just swung (health dropped), their swing is on
 		//    cooldown and we're in their space (§4.4, §6.1)
 		if (Brain.justTookDamage && dist <= FightConfig.COMBO_RANGE + 0.5) {
+			ActionLock.lock(3);
+			SprintHit.executeAimed(client);
+			return true;
+		}
+
+		// 1b. whiff-punish — while baiting, they closed in and missed; every
+		//     whiffed attack is a free stun (§4.2)
+		if (Brain.state == FightState.BAITING
+				&& dist <= FightConfig.COMBO_RANGE + 0.5
+				&& !Brain.justTookDamage) {
 			ActionLock.lock(3);
 			SprintHit.executeAimed(client);
 			return true;

@@ -1,7 +1,10 @@
 package com.aura.swordbot.client.brain.neurons;
 
+import com.aura.swordbot.client.brain.info.selfStats;
 import com.aura.swordbot.client.brain.info.targetStats;
+import com.aura.swordbot.client.util.TargetManager;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * Long-term reads on the opponent (guide §1.5, §10). Rebuilds the crit-game
@@ -18,6 +21,7 @@ public final class OpponentProfile {
 	public int punishCrits = 0;
 	public int jumpResets = 0;
 	public int sweeps = 0;
+	public int sCrits = 0;
 
 	private int lateKbSigns = 0;
 	private int pingWindowStart = 0;
@@ -67,6 +71,10 @@ public final class OpponentProfile {
 			if (targetStats.targetSprinting) {
 				noKbCrits++;
 			}
+			// S crit: they go airborne while drifting away from us (builds distance)
+			if (driftingAway()) {
+				sCrits++;
+			}
 		}
 
 		// jump reset: they rise right as our hit lands
@@ -83,5 +91,19 @@ public final class OpponentProfile {
 		}
 
 		wasAirborne = airborne;
+	}
+
+	/** The target's velocity carries them away from us (§10.3 S-crit detection). */
+	private boolean driftingAway() {
+		if (targetStats.targetVelocity == null || selfStats.pos == null) return false;
+		LivingEntity target = TargetManager.getTarget();
+		if (target == null) return false;
+		Vec3 toTarget = target.position().subtract(selfStats.pos);
+		double len = toTarget.length();
+		if (len < 0.001) return false;
+		double dot = toTarget.x * targetStats.targetVelocity.x
+				+ toTarget.y * targetStats.targetVelocity.y
+				+ toTarget.z * targetStats.targetVelocity.z;
+		return dot / len > 0.2;
 	}
 }

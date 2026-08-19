@@ -3,9 +3,14 @@ package com.aura.swordbot.client.brain.neurons;
 import com.aura.swordbot.client.brain.act.complex.Crit;
 import com.aura.swordbot.client.brain.act.complex.CritDeflect;
 import com.aura.swordbot.client.brain.act.complex.DoubleCrit;
+import com.aura.swordbot.client.brain.act.complex.FallingSprintHit;
+import com.aura.swordbot.client.brain.act.complex.PeakCrit;
 import com.aura.swordbot.client.brain.act.complex.SprintHit;
 import com.aura.swordbot.client.brain.act.complex.StandingCrit;
 import com.aura.swordbot.client.brain.act.complex.Strafe;
+import com.aura.swordbot.client.brain.act.complex.Sweep;
+import com.aura.swordbot.client.brain.info.selfStats;
+import com.aura.swordbot.client.brain.info.targetStats;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.LivingEntity;
 
@@ -26,6 +31,13 @@ public final class RpsNeuron {
 		}
 
 		OpponentProfile p = Brain.opponent;
+
+		// low TPS: multi-tick crit sequences won't land — stay simple (§12, WorldStats)
+		if (TimingNeuron.isLaggy()) {
+			ActionLock.lock(3);
+			CritDeflect.execute(client, false);
+			return;
+		}
 
 		// high ping: no-KB crits and double crits, stay as close as possible (§1.5, §11.5)
 		if (p.highPing) {
@@ -66,6 +78,13 @@ public final class RpsNeuron {
 			return;
 		}
 
+		// they S crit to build distance → peak crit closes in, into the crit game (§10.3)
+		if (p.sCrits > 0) {
+			ActionLock.lock(14);
+			PeakCrit.execute(client);
+			return;
+		}
+
 		ActionLock.lock(3);
 		CritDeflect.execute(client, p.noKbCrits > 0);
 	}
@@ -74,6 +93,15 @@ public final class RpsNeuron {
 	public static boolean counter(Minecraft client, LivingEntity target) {
 		OpponentProfile p = Brain.opponent;
 		if (!TimingNeuron.canAttack()) return false;
+
+		// back sweep: both airborne in a crit trade — hold S and sweep (§7.5)
+		if (!selfStats.onGround
+				&& !targetStats.targetOnGround
+				&& PriorityNeuron.distance() <= FightConfig.COMBO_RANGE + 0.5) {
+			ActionLock.lock(3);
+			Sweep.back(client);
+			return true;
+		}
 
 		// no-KB critters → double crit
 		if (p.noKbCrits > 0) {
@@ -86,6 +114,16 @@ public final class RpsNeuron {
 		if (p.punishCrits > 0 || p.doubleCrits > 0) {
 			ActionLock.lock(3);
 			SprintHit.executeAimed(client);
+			return true;
+		}
+
+		// standard W-release critter → falling sprint hit out-reaches the crit (§10.2, §11.1)
+		if (p.airCrits >= FightConfig.CRIT_PROBE_COUNT
+				&& p.noKbCrits == 0
+				&& p.punishCrits == 0
+				&& p.doubleCrits == 0) {
+			ActionLock.lock(8);
+			FallingSprintHit.execute(client);
 			return true;
 		}
 

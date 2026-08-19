@@ -11,9 +11,10 @@ public final class FightConfig {
 	public static final double CRIT_RANGE = 8.0;
 	public static final double CHASE_RANGE = 6.0;
 
-	// timing gates (§1.2): full-KB sprint hits at >= ~85% charge; ticks below ~90%
+	// timing gates (§1.2): full-KB sprint hits at >= ~85% charge; deliberate
+	// ticks only in the 0.1..0.85 window below that
 	public static final float SPRINT_HIT_COOLDOWN = 0.85f;
-	public static final float TICK_COOLDOWN = 0.9f;
+	public static final float TICK_COOLDOWN = 0.85f;
 	public static final float TICK_COOLDOWN_MIN = 0.1f;
 	public static final float FALL_TOLERANCE = 0.05f;
 	public static final float RISE_TOLERANCE = 0.05f;
@@ -34,6 +35,14 @@ public final class FightConfig {
 
 	// S-holder detection (§5.4, §8.3)
 	public static final int S_HOLD_STREAK = 3;
+
+	// movement mixups (§8.4, §8.5)
+	public static final int DOUBLE_JUMP_INTERVAL = 40;
+	public static final int TURN_BACK_TICKS = 12;
+	public static final int TURN_BACK_INTERVAL = 50;
+
+	// server health (§12): below this TPS, tight timing windows can't be trusted
+	public static final float LOW_TPS_THRESHOLD = 14f;
 
 	public static final int COMBO_TIMEOUT_TICKS = 60;
 	public static final int ESCAPE_TIMEOUT_TICKS = 40;

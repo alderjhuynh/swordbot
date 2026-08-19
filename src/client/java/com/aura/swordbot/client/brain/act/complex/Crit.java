@@ -21,7 +21,9 @@ public final class Crit {
 		});
 		TickScheduler.schedule(7, () -> {
 			MoveKeyUp.execute(client, MoveDirection.FORWARD);
-			Attack.commit(client, () -> AttackOnce.execute(client));
+			Attack.commit(client, () -> {
+				if (Attack.airborne()) AttackOnce.execute(client);
+			});
 			MoveKeyDown.execute(client, MoveDirection.FORWARD);
 		});
 	}
@@ -32,7 +34,9 @@ public final class Crit {
 		FaceTarget.instant(client);
 		TickScheduler.schedule(1, () -> {
 			MoveKeyDown.execute(client, MoveDirection.FORWARD);
-			Attack.commit(client, () -> AttackOnce.execute(client));
+			Attack.commit(client, () -> {
+				if (Attack.airborne()) AttackOnce.execute(client);
+			});
 		});
 	}
 

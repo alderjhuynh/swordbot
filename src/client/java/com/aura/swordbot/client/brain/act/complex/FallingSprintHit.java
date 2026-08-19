@@ -26,7 +26,9 @@ public final class FallingSprintHit {
 		TickScheduler.schedule(6, () -> {
 			StartSprint.execute(client);
 			MoveKeyDown.execute(client, MoveDirection.FORWARD);
-			Attack.commit(client, () -> AttackOnce.execute(client));
+			Attack.commit(client, () -> {
+				if (Attack.airborne()) AttackOnce.execute(client);
+			});
 		});
 	}
 }

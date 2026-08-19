@@ -27,7 +27,9 @@ public final class StandingCrit {
 		});
 		TickScheduler.schedule(12, () -> {
 			MoveKeyUp.execute(client, MoveDirection.FORWARD);
-			Attack.commit(client, () -> AttackOnce.execute(client));
+			Attack.commit(client, () -> {
+				if (Attack.airborne()) AttackOnce.execute(client);
+			});
 			MoveKeyDown.execute(client, MoveDirection.FORWARD);
 		});
 	}

@@ -1,5 +1,6 @@
 package com.aura.swordbot.client.brain.neurons;
 
+import com.aura.swordbot.client.brain.info.WorldStats;
 import com.aura.swordbot.client.brain.info.selfStats;
 import com.aura.swordbot.client.brain.info.targetStats;
 
@@ -28,6 +29,11 @@ public final class TimingNeuron {
 	public static boolean isTickWindow() {
 		float cooldown = selfStats.attackCooldown;
 		return cooldown >= FightConfig.TICK_COOLDOWN_MIN && cooldown < FightConfig.TICK_COOLDOWN;
+	}
+
+	/** Server TPS dropped below the threshold — timing windows are unreliable (§12). */
+	public static boolean isLaggy() {
+		return WorldStats.tps < FightConfig.LOW_TPS_THRESHOLD;
 	}
 
 	/** The target is coming down — the golden rule says hold your KB hit. */

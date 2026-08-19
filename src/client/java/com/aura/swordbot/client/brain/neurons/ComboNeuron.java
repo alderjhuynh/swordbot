@@ -9,6 +9,7 @@ import com.aura.swordbot.client.brain.act.complex.STap;
 import com.aura.swordbot.client.brain.act.complex.Strafe;
 import com.aura.swordbot.client.brain.act.complex.Sweep;
 import com.aura.swordbot.client.brain.act.complex.TickHit;
+import com.aura.swordbot.client.brain.act.complex.Uppercut;
 import com.aura.swordbot.client.brain.act.complex.WTap;
 import com.aura.swordbot.client.util.TickScheduler;
 import net.minecraft.client.Minecraft;
@@ -25,6 +26,7 @@ public final class ComboNeuron {
 
 	private static int sHoldStreak = 0;
 	private static boolean lastKeepWasHop = false;
+	private static int mixupTicks = 0;
 
 	private ComboNeuron() {}
 
@@ -40,9 +42,28 @@ public final class ComboNeuron {
 			return;
 		}
 
+		// low TPS: tight multi-tick hops/lunges won't land — plain W-tap cadence (§12)
+		if (TimingNeuron.isLaggy()) {
+			if (TimingNeuron.canKbHit()) {
+				Strafe.start(client, Strafe.pickSide());
+				ActionLock.lock(3);
+				WTap.executeAimed(client);
+			}
+			return;
+		}
+
 		// golden rule: never KB-hit a falling target — wait for the landing (§1.4)
 		if (TimingNeuron.targetFalling()) {
 			holdForLanding(client);
+			return;
+		}
+
+		// offbeat uppercut right after a stun catches them rising (§8.7)
+		if (Brain.justLandedHit
+				&& TimingNeuron.targetRising()
+				&& ++mixupTicks % 7 == 0) {
+			ActionLock.lock(6);
+			Uppercut.execute(client);
 			return;
 		}
 

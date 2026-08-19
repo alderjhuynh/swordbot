@@ -17,6 +17,14 @@ public final class Attack {
 	private Attack() {}
 
 	/**
+	 * The bot is airborne right now. Crits and falling sprint hits only exist in
+	 * the air, so scheduled attacks verify this before swinging (§1.2, §10.1).
+	 */
+	public static boolean airborne() {
+		return !selfStats.onGround;
+	}
+
+	/**
 	 * Runs {@code action} (the actual {@code AttackOnce}) only if the sword is
 	 * charged enough for a real hit. Returns whether it fired.
 	 */

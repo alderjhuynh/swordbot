@@ -15,14 +15,18 @@ public final class DoubleCrit {
 	public static void execute(Minecraft client) {
 		if (client.player == null) return;
 		FaceTarget.instant(client);
-		TickScheduler.schedule(1, () -> Attack.commit(client, () -> AttackOnce.execute(client)));
+		TickScheduler.schedule(1, () -> Attack.commit(client, () -> {
+			if (Attack.airborne()) AttackOnce.execute(client);
+		}));
 		TickScheduler.schedule(5, () -> {
 			MoveKeyUp.execute(client, MoveDirection.FORWARD);
 			Jump.execute(client);
 		});
 		TickScheduler.schedule(12, () -> {
 			MoveKeyUp.execute(client, MoveDirection.FORWARD);
-			Attack.commit(client, () -> AttackOnce.execute(client));
+			Attack.commit(client, () -> {
+				if (Attack.airborne()) AttackOnce.execute(client);
+			});
 			MoveKeyDown.execute(client, MoveDirection.FORWARD);
 		});
 	}

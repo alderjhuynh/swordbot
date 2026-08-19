@@ -30,7 +30,9 @@ public final class Hop {
 		});
 		TickScheduler.schedule(8, () -> {
 			MoveKeyUp.execute(client, MoveDirection.FORWARD);
-			Attack.commit(client, () -> AttackOnce.execute(client));
+			Attack.commit(client, () -> {
+				if (Attack.airborne()) AttackOnce.execute(client);
+			});
 			MoveKeyDown.execute(client, MoveDirection.FORWARD);
 		});
 	}

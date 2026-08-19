@@ -2,6 +2,8 @@ package com.aura.swordbot.client.brain.neurons;
 
 import com.aura.swordbot.client.brain.act.complex.Crit;
 import com.aura.swordbot.client.brain.act.complex.CrouchDodge;
+import com.aura.swordbot.client.brain.act.complex.FallingSprintHit;
+import com.aura.swordbot.client.brain.act.complex.Uppercut;
 import com.aura.swordbot.client.brain.info.selfStats;
 import com.aura.swordbot.client.brain.info.targetStats;
 import net.minecraft.client.Minecraft;
@@ -56,6 +58,15 @@ public final class PriorityNeuron {
 		if (Brain.state == FightState.COMBATING) {
 			if (SpacingNeuron.inDesiredRange(client, target, advantage, disadvantage)) {
 				ComboNeuron.tick(client, target);
+			} else if (PriorityNeuron.distance() <= FightConfig.CHASE_RANGE) {
+				// they slipped out of the ring — momentum reach keeps us landing hits
+				// (falling sprint hit, with the occasional offbeat uppercut, §5.4, §8.7)
+				ActionLock.lock(8);
+				if (TimingNeuron.targetFalling() || Brain.tickCount % 4 != 0) {
+					FallingSprintHit.execute(client);
+				} else {
+					Uppercut.execute(client);
+				}
 			} else {
 				SpacingNeuron.tick(client, target, advantage, disadvantage);
 			}
