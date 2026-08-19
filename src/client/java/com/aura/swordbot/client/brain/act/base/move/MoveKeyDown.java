@@ -1,5 +1,6 @@
 package com.aura.swordbot.client.brain.act.base.move;
 
+import com.aura.swordbot.client.util.BotKeys;
 import net.minecraft.client.Minecraft;
 
 public final class MoveKeyDown {
@@ -7,10 +8,10 @@ public final class MoveKeyDown {
 
 	public static void execute(Minecraft client, MoveDirection direction) {
 		switch (direction) {
-			case FORWARD -> client.options.keyUp.setDown(true);
-			case BACK -> client.options.keyDown.setDown(true);
-			case LEFT -> client.options.keyLeft.setDown(true);
-			case RIGHT -> client.options.keyRight.setDown(true);
+			case FORWARD -> BotKeys.down(client.options.keyUp);
+			case BACK -> BotKeys.down(client.options.keyDown);
+			case LEFT -> BotKeys.down(client.options.keyLeft);
+			case RIGHT -> BotKeys.down(client.options.keyRight);
 		}
 	}
 }

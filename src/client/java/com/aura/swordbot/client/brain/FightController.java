@@ -1,13 +1,12 @@
 package com.aura.swordbot.client.brain;
 
 import com.aura.swordbot.client.brain.act.base.look.SmoothLook;
-import com.aura.swordbot.client.brain.act.base.move.MoveDirection;
-import com.aura.swordbot.client.brain.act.base.move.MoveKeyUp;
-import com.aura.swordbot.client.brain.act.base.sneak.SneakKeyUp;
 import com.aura.swordbot.client.brain.act.base.sprint.EndSprint;
 import com.aura.swordbot.client.brain.neurons.Brain;
 import com.aura.swordbot.client.brain.neurons.FightState;
+import com.aura.swordbot.client.util.BotKeys;
 import com.aura.swordbot.client.util.TargetManager;
+import com.aura.swordbot.client.util.TickScheduler;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -62,6 +61,7 @@ public final class FightController {
 		TargetManager.clear();
 		Brain.state = FightState.NEUTRAL;
 		SmoothLook.stop();
+		TickScheduler.clear();
 		releaseKeys(client);
 	}
 
@@ -82,10 +82,7 @@ public final class FightController {
 	}
 
 	private static void releaseKeys(Minecraft client) {
-		for (MoveDirection direction : MoveDirection.values()) {
-			MoveKeyUp.execute(client, direction);
-		}
-		SneakKeyUp.execute(client);
+		BotKeys.releaseAll();
 		EndSprint.execute(client);
 	}
 }

@@ -1,11 +1,12 @@
 package com.aura.swordbot.client.brain.act.base.sneak;
 
+import com.aura.swordbot.client.util.BotKeys;
 import net.minecraft.client.Minecraft;
 
 public final class SneakKeyUp {
 	private SneakKeyUp() {}
 
 	public static void execute(Minecraft client) {
-		client.options.keyShift.setDown(false);
+		BotKeys.up(client.options.keyShift);
 	}
 }

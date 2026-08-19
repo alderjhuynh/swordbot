@@ -23,6 +23,7 @@ public final class Strafe {
 
 	public static void start(Minecraft client, MoveDirection direction) {
 		if (direction == MoveDirection.FORWARD || direction == MoveDirection.BACK) return;
+		stopAll(client);
 		MoveKeyDown.execute(client, direction);
 	}
 
@@ -33,5 +34,10 @@ public final class Strafe {
 	public static void stop(Minecraft client, MoveDirection direction) {
 		if (direction == MoveDirection.FORWARD || direction == MoveDirection.BACK) return;
 		MoveKeyUp.execute(client, direction);
+	}
+
+	public static void stopAll(Minecraft client) {
+		MoveKeyUp.execute(client, MoveDirection.LEFT);
+		MoveKeyUp.execute(client, MoveDirection.RIGHT);
 	}
 }

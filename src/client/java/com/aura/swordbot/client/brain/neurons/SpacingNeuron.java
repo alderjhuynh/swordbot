@@ -46,12 +46,14 @@ public final class SpacingNeuron {
 	}
 
 	public static void approach(Minecraft client, LivingEntity target) {
+		Strafe.stopAll(client);
 		MoveKeyUp.execute(client, MoveDirection.BACK);
 		MoveKeyDown.execute(client, MoveDirection.FORWARD);
 		StartSprint.execute(client);
 	}
 
 	public static void retreat(Minecraft client) {
+		Strafe.stopAll(client);
 		MoveKeyUp.execute(client, MoveDirection.FORWARD);
 		MoveKeyDown.execute(client, MoveDirection.BACK);
 	}

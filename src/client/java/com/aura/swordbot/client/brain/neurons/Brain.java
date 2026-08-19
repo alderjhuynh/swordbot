@@ -3,6 +3,7 @@ package com.aura.swordbot.client.brain.neurons;
 import com.aura.swordbot.client.brain.FightController;
 import com.aura.swordbot.client.brain.info.selfStats;
 import com.aura.swordbot.client.brain.info.targetStats;
+import com.aura.swordbot.client.util.BotKeys;
 import com.aura.swordbot.client.util.TargetManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.LivingEntity;
@@ -45,6 +46,9 @@ public final class Brain {
 			state = FightState.NEUTRAL;
 			justTookDamage = false;
 			justLandedHit = false;
+			// the fight is over (target died/deselected) — let go of any keys the
+			// bot was holding, but never the player's own input.
+			BotKeys.releaseAll();
 			return;
 		}
 

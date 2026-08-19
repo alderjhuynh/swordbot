@@ -22,6 +22,13 @@ public class TickScheduler {
         tasks.add(new ScheduledTask(delay, action));
     }
 
+    /** Drops every pending task. Used when the fight is disabled so queued bot
+     *  actions (key presses, attacks) can never fire after control returns to
+     *  the player. */
+    public static void clear() {
+        tasks.clear();
+    }
+
     public static void tick() {
         List<Runnable> ready = new ArrayList<>();
 
