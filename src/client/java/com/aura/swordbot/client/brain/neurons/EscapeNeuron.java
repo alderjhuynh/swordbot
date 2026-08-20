@@ -5,6 +5,7 @@ import com.aura.swordbot.client.brain.act.base.move.MoveKeyDown;
 import com.aura.swordbot.client.brain.act.base.move.MoveKeyUp;
 import com.aura.swordbot.client.brain.act.base.sprint.StartSprint;
 import com.aura.swordbot.client.brain.act.complex.JumpReset;
+import com.aura.swordbot.client.brain.act.complex.SprintHit;
 import com.aura.swordbot.client.brain.act.complex.TurnBack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.LivingEntity;
@@ -20,6 +21,19 @@ public final class EscapeNeuron {
 
 	public static void tick(Minecraft client, LivingEntity target) {
 		if (target == null) return;
+
+		// aggression override: the moment the sword is charged and the opponent is
+		// in reach, stop running and throw the deflection sprint hit — their swing
+		// is on cooldown and we're in their space (§4.4, §6.1). Escaping with a
+		// ready sword just hands the chase to the opponent.
+		if (!ActionLock.isLocked()
+				&& TimingNeuron.canKbHit()
+				&& PriorityNeuron.distance() <= FightConfig.COMBO_RANGE + 0.5) {
+			Brain.state = FightState.ENGAGING;
+			ActionLock.lock(3);
+			SprintHit.executeAimed(client);
+			return;
+		}
 
 		// turn-back burst: sprint away instead of S-holding — retreats much faster (§8.5)
 		if (Brain.tickCount < TurnBack.activeUntil()) {

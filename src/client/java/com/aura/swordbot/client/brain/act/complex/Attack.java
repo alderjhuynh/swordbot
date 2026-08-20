@@ -2,6 +2,7 @@ package com.aura.swordbot.client.brain.act.complex;
 
 import com.aura.swordbot.client.brain.info.selfStats;
 import com.aura.swordbot.client.brain.neurons.FightConfig;
+import com.aura.swordbot.client.telemetry.Telemetry;
 import net.minecraft.client.Minecraft;
 
 /**
@@ -29,7 +30,10 @@ public final class Attack {
 	 * charged enough for a real hit. Returns whether it fired.
 	 */
 	public static boolean commit(Minecraft client, Runnable action) {
-		if (selfStats.attackCooldown < FightConfig.SPRINT_HIT_COOLDOWN) return false;
+		if (selfStats.attackCooldown < FightConfig.SPRINT_HIT_COOLDOWN) {
+			Telemetry.refused(selfStats.attackCooldown);
+			return false;
+		}
 		action.run();
 		return true;
 	}

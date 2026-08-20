@@ -4,6 +4,7 @@ import com.aura.swordbot.client.brain.act.base.look.SmoothLook;
 import com.aura.swordbot.client.brain.act.base.sprint.EndSprint;
 import com.aura.swordbot.client.brain.neurons.Brain;
 import com.aura.swordbot.client.brain.neurons.FightState;
+import com.aura.swordbot.client.telemetry.Telemetry;
 import com.aura.swordbot.client.util.BotKeys;
 import com.aura.swordbot.client.util.TargetManager;
 import com.aura.swordbot.client.util.TickScheduler;
@@ -37,18 +38,40 @@ public final class FightController {
 	public static void tick(Minecraft client) {
 		if (fightKey != null && fightKey.consumeClick()) {
 			enabled = !enabled;
-			if (!enabled) disable(client);
+			if (!enabled) {
+				disable(client);
+			} else {
+				Telemetry.fightStart(TargetManager.getTarget());
+			}
 		}
 		if (!enabled || client.player == null) return;
 
+		// dead: end the session so the loss is recorded; stay enabled so the bot
+		// re-engages whoever is left after respawn.
+		if (!client.player.isAlive()) {
+			if (lockedTarget != null) Telemetry.fightEnd("PLAYER_DIED");
+			lockedTarget = null;
+			TargetManager.clear();
+			return;
+		}
+
 		LivingEntity target = TargetManager.getTarget();
+		if (lockedTarget != null && (!lockedTarget.isAlive() || lockedTarget == client.player)) {
+			Telemetry.fightEnd("TARGET_DIED");
+			lockedTarget = null;
+			target = null;
+		}
+
 		if (target == null || !target.isAlive() || target == client.player) {
 			target = acquireNearest(client);
+			if (target != null) Telemetry.fightStart(target);
 		}
 
 		// enforce a single target: overwrite any other selection every tick
 		lockedTarget = target;
 		TargetManager.setTarget(target);
+
+		Telemetry.tick();
 	}
 
 	public static LivingEntity getTarget() {
@@ -56,6 +79,7 @@ public final class FightController {
 	}
 
 	public static void disable(Minecraft client) {
+		Telemetry.fightEnd("DISABLED");
 		enabled = false;
 		lockedTarget = null;
 		TargetManager.clear();

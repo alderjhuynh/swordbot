@@ -104,6 +104,21 @@ public final class CounterNeuron {
 			return true;
 		}
 
+		// default aggression — none of the special counters applied, but the sword
+		// is ready, the opponent is grounded and shoved inside the ring, and we're
+		// not the one on the back foot: commit instead of letting spacing retreat
+		// us out of a winnable trade (§11.1, §11.2). Disadvantaged → keep the
+		// long-distance crit/bait game (§11.3).
+		if (Brain.state != FightState.COMBATING
+				&& Brain.state != FightState.ESCAPING
+				&& selfStats.health >= target.getHealth()
+				&& !TimingNeuron.targetFalling()
+				&& dist < FightConfig.MIN_COMBAT_RANGE) {
+			ActionLock.lock(3);
+			SprintHit.executeAimed(client);
+			return true;
+		}
+
 		return false;
 	}
 

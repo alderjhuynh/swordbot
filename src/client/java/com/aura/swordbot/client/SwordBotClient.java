@@ -6,6 +6,7 @@ import com.aura.swordbot.client.brain.info.targetStats;
 import com.aura.swordbot.client.brain.info.WorldStats;
 import com.aura.swordbot.client.brain.neurons.Brain;
 import com.aura.swordbot.client.render.TargetHud;
+import com.aura.swordbot.client.telemetry.Telemetry;
 import com.aura.swordbot.client.util.TickScheduler;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -15,6 +16,7 @@ public class SwordBotClient implements ClientModInitializer {
 	public void onInitializeClient() {
 		FightController.init();
 		TargetHud.init();
+		Telemetry.init();
 
 		ClientTickEvents.END_CLIENT_TICK.register(
 				client -> TickScheduler.tick()

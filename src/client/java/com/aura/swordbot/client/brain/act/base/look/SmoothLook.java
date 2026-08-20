@@ -24,6 +24,13 @@ public final class SmoothLook {
 	private static final float MAX_ERROR_YAW = 1.0f;
 	private static final float MAX_ERROR_PITCH = 0.7f;
 
+	// if a re-arm lands within these angular tolerances of the current goal,
+	// the already-running turn is kept instead of restarted. Combat re-arms the
+	// look nearly every tick; restarting each time resets the easing curve and
+	// re-rolls the error, which reads as constant jitter.
+	private static final float CONTINUE_YAW_TOLERANCE = 3.0f;
+	private static final float CONTINUE_PITCH_TOLERANCE = 2.0f;
+
 	private static boolean active;
 	private static long startNano;
 	private static long durationNanos;
@@ -75,6 +82,19 @@ public final class SmoothLook {
 	public static void look(Minecraft client, float targetYaw, float targetPitch, long durationMillis) {
 		LocalPlayer player = client.player;
 		if (player == null) return;
+
+		// already turning toward (essentially) the same goal: keep the current
+		// motion, easing progress and error instead of restarting, so rapid
+		// re-arms during a combo don't stutter. The caller (lookAt) re-attaches
+		// its live aim point right after this returns.
+		if (active
+				&& Math.abs(wrapDegrees(targetYaw - goalYaw)) <= CONTINUE_YAW_TOLERANCE
+				&& Math.abs(targetPitch - goalPitch) <= CONTINUE_PITCH_TOLERANCE) {
+			goalYaw = targetYaw;
+			goalPitch = clampPitch(targetPitch);
+			aimSupplier = null;
+			return;
+		}
 
 		stop();
 
@@ -150,9 +170,17 @@ public final class SmoothLook {
 	}
 
 	private static void applyRotation(LocalPlayer player, float yaw, float pitch) {
+		float clampedPitch = clampPitch(pitch);
 		player.setYRot(yaw);
 		player.setYHeadRot(yaw);
-		player.setXRot(clampPitch(pitch));
+		player.setXRot(clampedPitch);
+		// the rendered camera and crosshair interpolate from the *O fields to
+		// the current ones each frame. Without mirroring them, the camera lags
+		// the rotation we just applied and the aim looks like it's fighting
+		// itself.
+		player.yRotO = yaw;
+		player.yHeadRotO = yaw;
+		player.xRotO = clampedPitch;
 	}
 
 	private static float easeOutCubic(float t) {
