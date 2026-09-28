@@ -1,0 +1,13 @@
+{
+	"required": true,
+	"package": "com.aura.swordbotv2.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"mixins": [
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}

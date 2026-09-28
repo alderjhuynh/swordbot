@@ -1,0 +1,14 @@
+{
+	"required": true,
+	"package": "com.aura.swordbotv2.client.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"KeyMappingAccessor"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}
