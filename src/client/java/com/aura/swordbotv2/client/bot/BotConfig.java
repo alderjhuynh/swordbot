@@ -50,7 +50,11 @@ public final class BotConfig {
     public double bowMinDist = 13.0;
     public double bowMaxDist = 30.0;
     public double punishEaterDist = 6.0;
-    public boolean autoTarget = false;
+    // Duel-loop autonomy (v44): re-acquire a legal target by ourselves every
+    // tick we have none, so rounds chain forever with no H key. Countdown and
+    // invulnerable foes are filtered inside Targeting, so auto-acquire can
+    // never engage during the protected countdown. Manual H still retargets.
+    public boolean autoTarget = true;
     public double autoTargetRange = 100.0;
 
     private BotConfig() {

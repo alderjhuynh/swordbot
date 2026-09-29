@@ -15,7 +15,8 @@ final class PursueBrain {
             out.f = 1;
             out.sprint = true;
             double closing = 0.35 + Math.max(0, sense.radialVel);
-            if (sense.hdist - 12.0 * closing >= 3.6 && sense.onGround) {
+            boolean foeKbClose = sense.foeKbLevel > 0 && sense.hdist <= 6.0;
+            if (!foeKbClose && sense.hdist - 12.0 * closing >= 3.6 && sense.onGround) {
                 out.jump = true;
             }
             return true;
@@ -25,7 +26,8 @@ final class PursueBrain {
         }
         out.f = 1;
         out.sprint = true;
-        if (sense.hdist >= 4.0 && sense.onGround) {
+        if (sense.hdist >= 4.0 && sense.onGround
+                && !(sense.foeKbLevel > 0 && sense.hdist <= 6.0)) {
             out.jump = true;
         }
         return true;

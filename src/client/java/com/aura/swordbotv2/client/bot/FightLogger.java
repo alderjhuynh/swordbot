@@ -39,6 +39,7 @@ final class FightLogger {
     private String style = "?";
     private double lastFoeHp = -1;
     private double lastMyHp = -1;
+    private double lastReach = -1;
     private int lastHurt = -1;
     private int sinceTrace;
     private LivingEntity tracked;
@@ -51,9 +52,16 @@ final class FightLogger {
     private int readyIdleTicks;
     private int airSwings;
     private int fallSwings;
+    private int kbSwings;
+    private int sprSwings;
+    private int brawlTicks;
+    private int retreatTicks;
+    private String kit = "?";
+    private int kbLvl;
 
-    boolean begin(Minecraft client, LivingEntity foeEnt, BotConfig config, int age) {
-        close(client, "switched");
+    boolean begin(Minecraft client, LivingEntity foeEnt, BotConfig config, int age,
+            KitProfile profile, String endReason) {
+        close(client, endReason);
         try {
             if (client == null || client.player == null || !client.player.isAlive()
                     || client.player.getHealth() <= 0 || foeEnt == null
@@ -84,6 +92,7 @@ final class FightLogger {
             style = config.style.name();
             lastFoeHp = foeEnt.getHealth();
             lastMyHp = myHp(client);
+            lastReach = -1;
             lastHurt = client.player.hurtTime;
             sinceTrace = 0;
             trace.clear();
@@ -95,6 +104,12 @@ final class FightLogger {
             readyIdleTicks = 0;
             airSwings = 0;
             fallSwings = 0;
+            kbSwings = 0;
+            sprSwings = 0;
+            brawlTicks = 0;
+            retreatTicks = 0;
+            kit = profile == null ? "?" : profile.kitName();
+            kbLvl = profile == null ? 0 : profile.kbLevel;
             return true;
         } catch (Exception ignored) {
             open = false;
@@ -116,7 +131,8 @@ final class FightLogger {
         }
     }
 
-    void onTick(Minecraft client, SenseState sense, Intents in, int gate, String mode) {
+    void onTick(Minecraft client, SenseState sense, Intents in, int gate, String mode,
+            boolean kbWielded, boolean brawling, boolean losing) {
         if (!open) {
             return;
         }
@@ -138,11 +154,23 @@ final class FightLogger {
             // damage landed
             if (tracked != null) {
                 double fh = tracked.getHealth();
+                double reachNow = sense.valid ? sense.reachMe : -1;
+                if (lastFoeHp >= 0 && lastReach >= 0 && sense.valid
+                        && fh - lastFoeHp > 5.0
+                        && Math.abs(reachNow - lastReach) > 3.0) {
+                    lastFoeHp = fh;
+                    lastReach = reachNow;
+                    close(client, "round");
+                    return;
+                }
                 if (lastFoeHp >= 0 && fh < lastFoeHp) {
                     hits++;
                     dmgDealt += lastFoeHp - fh;
                 }
                 lastFoeHp = fh;
+                if (sense.valid) {
+                    lastReach = reachNow;
+                }
             }
             // range profile
             if (sense.target != null && sense.valid) {
@@ -194,6 +222,19 @@ final class FightLogger {
                     fallSwings++;
                 }
             }
+            if (in.attack && kbWielded) {
+                kbSwings++;
+            }
+            // w-tap telemetry
+            if (in.attack && sense.valid && sense.sprinting) {
+                sprSwings++;
+            }
+            if (brawling) {
+                brawlTicks++;
+            }
+            if (losing) {
+                retreatTicks++;
+            }
             // trace tail
             if (++sinceTrace >= TRACE_EVERY) {
                 sinceTrace = 0;
@@ -231,6 +272,10 @@ final class FightLogger {
 
     void abort(Minecraft client) {
         close(client, "aborted");
+    }
+
+    void closeRound(Minecraft client) {
+        close(client, "round");
     }
 
     private void close(Minecraft client, String reason) {
@@ -282,6 +327,12 @@ final class FightLogger {
                     .append(",\"ready_idle_ticks\":").append(readyIdleTicks)
                     .append(",\"air_swings\":").append(airSwings)
                     .append(",\"fall_swings\":").append(fallSwings)
+                    .append(",\"kb_swings\":").append(kbSwings)
+                    .append(",\"spr_swings\":").append(sprSwings)
+                    .append(",\"brawl_ticks\":").append(brawlTicks)
+                    .append(",\"retreat_ticks\":").append(retreatTicks)
+                    .append(",\"kit\":\"").append(kit).append("\"")
+                    .append(",\"kb\":").append(kbLvl)
                     .append(",\"trace_tail\":[");
             for (int i = 0; i < trace.size(); i++) {
                 if (i > 0) {

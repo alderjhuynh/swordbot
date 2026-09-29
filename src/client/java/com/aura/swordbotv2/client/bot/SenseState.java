@@ -47,9 +47,15 @@ public final class SenseState {
     public boolean critOk;
 
     public int lastHurtAge = -100000;
+    public int foeSwingAge = -100000;
+    public boolean justLanded;
+    public int foeKbLevel;
+    public boolean prevGround = true;
 
     private double lastHp = -1;
     private Vec3 lastTargetPos;
+    private boolean wasFoeSwinging;
+    private boolean wasGround = true;
 
     public void tick(Minecraft client, LivingEntity lockedTarget, int age) {
         valid = false;
@@ -62,6 +68,9 @@ public final class SenseState {
         eyePos = client.player.getEyePosition();
         selfVel = client.player.getDeltaMovement();
         onGround = client.player.onGround();
+        prevGround = wasGround;
+        justLanded = onGround && !wasGround;
+        wasGround = onGround;
         fallDistance = client.player.fallDistance;
         health = client.player.getHealth();
         absorption = client.player.getAbsorptionAmount();
@@ -124,12 +133,35 @@ public final class SenseState {
             targetHealth = 20.0;
         }
         targetHurtTime = target.hurtTime;
+        boolean foeSwinging = false;
+        try {
+            foeSwinging = target.isSwinging();
+        } catch (Exception ignored) {
+        }
+        if (foeSwinging && !wasFoeSwinging) {
+            foeSwingAge = age;
+        }
+        wasFoeSwinging = foeSwinging;
         boolean using = false;
         try {
             using = target.isUsingItem();
         } catch (Exception ignored) {
         }
         targetUsingItem = using;
+        foeKbLevel = 0;
+        try {
+            var stack = target.getMainHandItem();
+            if (stack != null && !stack.isEmpty() && client.level != null) {
+                var lookup = client.level.registryAccess()
+                        .lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT);
+                var kb = lookup.getOrThrow(
+                        net.minecraft.world.item.enchantment.Enchantments.KNOCKBACK);
+                foeKbLevel = net.minecraft.world.item.enchantment.EnchantmentHelper
+                        .getItemEnchantmentLevel(kb, stack);
+            }
+        } catch (Exception ignored) {
+            foeKbLevel = 0;
+        }
 
         double dx = tp.x - selfPos.x;
         double dz = tp.z - selfPos.z;
@@ -153,6 +185,8 @@ public final class SenseState {
     public void clearTargetMemory() {
         lastTargetPos = null;
         targetVelEma = null;
+        foeSwingAge = -100000;
+        wasFoeSwinging = false;
     }
 
     private static boolean hasLos(Minecraft client, Vec3 from, LivingEntity target) {
@@ -210,6 +244,8 @@ public final class SenseState {
             lastTargetPos = null;
             targetVelEma = null;
             visibleTicks = 0;
+            foeSwingAge = -100000;
+            wasFoeSwinging = false;
         }
     }
 }

@@ -6,8 +6,17 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 
 public final class Aim {
-    public static final double LEAD_TICKS = 0.0;
-    public static final double LEAD_MAX = 0.0;
+    // Target leading (v39 added, v40 corrected): the click pressed this tick
+    // resolves server-side ~1 tick later, so aim 1 tick ahead. v39 used 2.0t
+    // capped 0.7m and accuracy collapsed to 29-67%: the EMA velocity lags
+    // direction changes and spikes on every knockback pop, so a 2-tick lead
+    // routinely aimed 0.7m+ off the body (box is 0.6 wide) — crosshair on air
+    // at resolve, ticker reset, full recharge lost per whiff. The cap is now
+    // half box width (0.3m): even a fully-stale lead keeps the crosshair on
+    // the body, and KB-spike contamination can only glance, never whiff.
+    // Decision ray and look target share the lead, so confirm/crosshair agree.
+    public static final double LEAD_TICKS = 1.0;
+    public static final double LEAD_MAX = 0.3;
 
     private final Random random = new Random();
     private float currentYaw;
@@ -67,6 +76,19 @@ public final class Aim {
         currentPitch = approach(currentPitch, wantPitch, cap);
         currentPitch = Mth.clamp(currentPitch, -90.0F, 90.0F);
         return new float[] {currentYaw, currentPitch};
+    }
+
+    /**
+     * v46 look-before-decide: what {@link #step} WOULD produce, without
+     * mutating. MeleeBrain ray-tests these post-step angles so the commit
+     * decision agrees with the look Motor is about to apply, instead of the
+     * stale want angles (planned vs applied skew, thing.md §7 cause B).
+     */
+    public float[] predictStep(BotConfig config) {
+        double cap = config.skill.turnDegPerTick;
+        float yaw = approachAngle(currentYaw, wantYaw, cap);
+        float pitch = Mth.clamp(approach(currentPitch, wantPitch, cap), -90.0F, 90.0F);
+        return new float[] {yaw, pitch};
     }
 
     public void applyTo(Minecraft client, float yaw, float pitch) {

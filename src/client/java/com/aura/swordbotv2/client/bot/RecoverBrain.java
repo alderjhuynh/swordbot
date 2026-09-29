@@ -240,22 +240,6 @@ final class RecoverBrain {
         }
     }
 
-    static boolean ensureWeaponForAttack(Minecraft client) {
-        if (client.player == null) {
-            return true;
-        }
-        var inv = client.player.getInventory();
-        if (isWeapon(inv.getItem(inv.getSelectedSlot()))) {
-            return true;
-        }
-        int w = findWeaponSlot(client);
-        if (w < 0) {
-            return true;
-        }
-        inv.setSelectedSlot(w);
-        return false;
-    }
-
     void reset() {
         mode = 0;
         modeAge = 0;

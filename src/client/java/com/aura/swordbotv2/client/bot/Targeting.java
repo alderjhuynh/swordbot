@@ -35,6 +35,14 @@ public final class Targeting {
         hasLastSeen = false;
     }
 
+    public void steal(LivingEntity next) {
+        locked = next;
+        if (locked != null) {
+            lastSeen = locked.position();
+            hasLastSeen = true;
+        }
+    }
+
     public void tick(Minecraft client, SenseState sense, BotConfig config) {
         if (client.player == null || client.level == null) {
             locked = null;
@@ -56,6 +64,31 @@ public final class Targeting {
         }
     }
 
+    static boolean isEngageable(LivingEntity ent) {
+        if (ent == null) {
+            return false;
+        }
+        try {
+            if (ent.hasGlowingTag()) {
+                return false;
+            }
+        } catch (Exception ignored) {
+        }
+        try {
+            if (ent.entityTags().contains("opus.countdown")) {
+                return false;
+            }
+        } catch (Exception ignored) {
+        }
+        try {
+            if (ent.isInvulnerable()) {
+                return false;
+            }
+        } catch (Exception ignored) {
+        }
+        return true;
+    }
+
     private static LivingEntity findNearest(Minecraft client, double range) {
         if (client.player == null || client.level == null) {
             return null;
@@ -67,6 +100,14 @@ public final class Targeting {
                 continue;
             }
             if (living == client.player || !living.isAlive()) {
+                continue;
+            }
+            // v46: armor stands are LivingEntity but never foes — grabbing
+            // one wedges the lock into permanent gate 7 (§7 cause E).
+            if (living instanceof net.minecraft.world.entity.decoration.ArmorStand) {
+                continue;
+            }
+            if (!isEngageable(living)) {
                 continue;
             }
             double d = living.distanceTo(client.player);

@@ -1,6 +1,7 @@
 package com.aura.swordbotv2.client.bot;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.LivingEntity;
 
 public final class BotEngine {
     private final BotConfig config = BotConfig.defaults();
@@ -15,9 +16,11 @@ public final class BotEngine {
     private final Intents intents = new Intents();
     private final Intents scratch = new Intents();
     private final FightLogger fights = new FightLogger();
+    private final KitProfile kit = new KitProfile();
 
     private boolean enabled;
     private int age;
+    private net.minecraft.world.entity.player.Player lastPlayer;
 
     public BotConfig config() {
         return config;
@@ -67,12 +70,64 @@ public final class BotEngine {
             return;
         }
         age++;
+        // Respawn/rel commute guard (v44 duel loop): immediate respawn swaps
+        // the player entity. Snap the look so the first post-respawn tick
+        // doesn't slew from a stale angle, and drop stale per-target memory.
+        // The lock itself is kept (the duel bot persists across OUR death).
+        if (client.player != lastPlayer) {
+            lastPlayer = client.player;
+            aim.snap(client.player.getYRot(), client.player.getXRot());
+            sense.clearTargetMemory();
+        }
         targeting.tick(client, sense, config);
+        // v46 crosshair-vs-lock steal (before sense): if the vanilla
+        // crosshair sits on an engageable foe that is NOT the lock while the
+        // lock is missing/invisible/far, the lock is stale — steal it now so
+        // sense/aim gate on the body the click would actually hit.
+        try {
+            var x = client.crosshairPickEntity;
+            if (x instanceof LivingEntity xl && xl != targeting.locked()
+                    && xl.isAlive() && Targeting.isEngageable(xl)
+                    && !(xl instanceof net.minecraft.world.entity.decoration.ArmorStand)) {
+                var cur = targeting.locked();
+                boolean stale = cur == null || !cur.isAlive()
+                        || cur.distanceTo(client.player) > 8.0
+                        || !sense.targetVisible || sense.reachMe > 3.5;
+                if (stale && xl.distanceTo(client.player) <= config.autoTargetRange) {
+                    targeting.steal(xl);
+                    sense.onTargetChanged(xl);
+                    sense.clearTargetMemory();
+                }
+            }
+        } catch (Exception ignored) {
+        }
         sense.tick(client, targeting.locked(), age);
         if (!sense.valid) {
             return;
         }
-        if (sense.target == null) {
+        // Kit behavior set (v36): inventory the hotbar on fight begin +
+        // periodically; wield state refreshes every tick (trivial read) so
+        // brains always know which doctrine is live.
+        if (kit.needsScan(age)) {
+            kit.rescan(client);
+        }
+        kit.refreshWield(client);
+        // Duel-loop intermission (v44, fixed v45): no foe, OR the foe is ruled
+        // out of play — glowing flag (referee countdown/intermission/round
+        // end; the one signal that actually syncs), countdown tag, or
+        // invulnerable (no damage possible either way). Stand down COMPLETELY:
+        // a stuck key would walk us off the home marker during the countdown,
+        // and brains must not shadow-box an invulnerable bot. An out-of-play
+        // lock closes the open telemetry row as a finished round ("round") so
+        // training gets one row per episode; the next lock re-opens fresh at
+        // FIGHT. Plain target loss (LOS flicker) does NOT close the row —
+        // only the referee's signals do.
+        LivingEntity lock = targeting.locked();
+        boolean sidelined = hasCountdownTag(lock) || hasGlowingTag(lock);
+        if (sense.target == null || sidelined || sense.target.isInvulnerable()) {
+            if (sidelined && lock != null && fights.tracks(lock)) {
+                fights.closeRound(client);
+            }
             motor.releaseAll(client);
             bow.stop(client);
             sense.endTick();
@@ -100,7 +155,7 @@ public final class BotEngine {
             intents.sprint = scratch.sprint;
             intents.attack = false;
             intents.use = false;
-            melee.tick(sense, config, aim, scratch, age, xhair);
+            melee.tick(sense, config, aim, scratch, age, xhair, kit);
             gate = melee.gate();
             if (scratch.attack) {
                 intents.attack = true;
@@ -111,7 +166,7 @@ public final class BotEngine {
                 faceTarget = false;
             } else if (!sense.onGround) {
                 modeStr = "MA";
-                melee.tick(sense, config, aim, scratch, age, xhair);
+                melee.tick(sense, config, aim, scratch, age, xhair, kit);
                 gate = melee.gate();
                 if (melee.punishing()) {
                     modeStr = "MAP";
@@ -124,7 +179,7 @@ public final class BotEngine {
                 intents.use = false;
                 melee.onAir(sense, intents, age);
             } else {
-                melee.tick(sense, config, aim, intents, age, xhair);
+                melee.tick(sense, config, aim, intents, age, xhair, kit);
                 gate = melee.gate();
                 modeStr = "M" + melee.plan() + (melee.punishing() ? "P" : "");
             }
@@ -134,10 +189,14 @@ public final class BotEngine {
         }
 
         if (sense.target != null && !fights.tracks(sense.target)) {
-            fights.begin(client, sense.target, config, age);
+            kit.rescan(client);
+            fights.begin(client, sense.target, config, age, kit, "switched");
         }
-        if (intents.attack && !RecoverBrain.ensureWeaponForAttack(client)) {
+        if (intents.attack && !kit.ensureWeaponForAttack(client, sense, config)) {
             intents.attack = false;
+        }
+        if (!intents.attack) {
+            kit.applyDoctrine(client, sense, config, recover, bow, intents);
         }
         if (intents.attack) {
             fights.onSwing();
@@ -155,8 +214,33 @@ public final class BotEngine {
                 gate = 4;
             }
         }
-        fights.onTick(client, sense, intents, gate, modeStr);
+        fights.onTick(client, sense, intents, gate, modeStr, kit.wieldKb,
+                melee.brawling(), melee.losing());
         motor.apply(client, intents, aim, config, faceTarget);
         sense.endTick();
+    }
+
+    /** Referee countdown tag (v44 duel loop): present = round not live. */
+    private static boolean hasCountdownTag(LivingEntity ent) {
+        if (ent == null) {
+            return false;
+        }
+        try {
+            return ent.entityTags().contains("opus.countdown");
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    /** Referee glow flag (v45): the synced out-of-play signal. */
+    private static boolean hasGlowingTag(LivingEntity ent) {
+        if (ent == null) {
+            return false;
+        }
+        try {
+            return ent.hasGlowingTag();
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 }
