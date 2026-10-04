@@ -1,0 +1,38 @@
+{
+	"schemaVersion": 1,
+	"id": "swordbot-v3",
+	"version": "${version}",
+	"name": "Swordbot v3",
+	"description": "This is an example description! Tell everyone what your mod is about!",
+	"authors": [
+		"Me!"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/swordbot-v3/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.aura.swordbotv3.SwordbotV3"
+		],
+		"client": [
+			"com.aura.swordbotv3.client.SwordbotV3Client"
+		]
+	},
+	"mixins": [
+		"swordbot-v3.mixins.json",
+		{
+			"config": "swordbot-v3.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
